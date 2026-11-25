@@ -21,7 +21,7 @@ A local-first, peer-to-peer communication PWA for Android and desktop.
 - Web Crypto API for cryptographic primitives
 - HTTPS hosting (GitHub Pages is the intended static host)
 
-## Current milestone: local identity
+## Current milestone: manual WebRTC peer chat
 
 - Creates a P-256 ECDSA identity key pair in the browser.
 - Derives a stable Redro ID from the SHA-256 fingerprint of the public key.
@@ -31,6 +31,13 @@ A local-first, peer-to-peer communication PWA for Android and desktop.
 - Does not upload identity data or private keys.
 
 The identity is currently tied to this browser's local storage. Clearing site data or losing the device can permanently remove it. Encrypted identity backup and migration are future work and must be designed before multi-device identity is promised.
+
+- Manual WebRTC offer/answer exchange using copy-and-paste connection codes.
+- Real-time text messages over an ordered WebRTC DataChannel when peers connect.
+- Local message history stored in IndexedDB on each participating device.
+- No central message-history database or message relay server is included.
+- A public STUN server is configured for NAT discovery; it does not store chat messages. No TURN relay is configured.
+- Connection setup is manual in this milestone; a stable Redro ID alone cannot locate a device.
 
 ## Important network limitation
 
