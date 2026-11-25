@@ -541,7 +541,7 @@ async function sendMessage(event) {
     showToast("The direct connection is not open.");
     return;
   }
-  const payload = { type: "message", id: crypto.randomUUID(), text, timestamp: new Date().toISOString() };
+  const payload = { type: "message", id: crypto.randomUUID(), text, timestamp: Date.now() };
   const message = {
     key: activeConversationId + ":" + payload.id,
     conversationId: activeConversationId,
