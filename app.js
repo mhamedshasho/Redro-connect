@@ -17,6 +17,8 @@ let dataChannel = null;
 let peerIdentity = null;
 let activeConversationId = null;
 let messageHistory = [];
+let peerVerified = false;
+let verificationReceived = false;
 
 function setCapability(name, available, detail) {
   const status = byId(name + "Status");
@@ -466,8 +468,8 @@ function parseSignal(value, expectedKind) {
   if (packet?.protocol !== SIGNAL_PROTOCOL || packet?.version !== SIGNAL_VERSION || packet?.kind !== expectedKind || !packet?.sdp?.type || !packet?.sdp?.sdp) {
     throw new Error("This is not a valid Redro Connect " + expectedKind + " code.");
   }
-  if (typeof packet.from?.id !== "string" || typeof packet.from?.displayName !== "string") {
-    throw new Error("The connection code is missing peer information.");
+  if (typeof packet.from?.id !== "string" || typeof packet.from?.displayName !== "string" || typeof packet.from?.publicKey !== "string") {
+    throw new Error("The connection code is missing peer identity information.");
   }
   return packet;
 }
@@ -511,6 +513,91 @@ function waitForIceGathering(connection) {
     };
     connection.addEventListener("icegatheringstatechange", onChange);
   });
+}
+
+async function validateSignalIdentity(identity) {
+  if (!identity || typeof identity.id !== "string" || typeof identity.displayName !== "string" || typeof identity.publicKey !== "string") {
+    throw new Error("The connection code does not contain a complete identity.");
+  }
+  let keyBytes;
+  let publicKey;
+  try {
+    const binary = atob(identity.publicKey);
+    keyBytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    publicKey = await crypto.subtle.importKey("spki", keyBytes, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  } catch {
+    throw new Error("The peer public key is invalid.");
+  }
+  const fingerprint = await crypto.subtle.digest("SHA-256", keyBytes);
+  const expectedId = "REDRO-" + toBase32(fingerprint).slice(0, 20);
+  if (identity.id !== expectedId) throw new Error("The peer ID does not match its public key.");
+  const contacts = await getContacts();
+  const known = contacts.find((contact) => contact.id === identity.id);
+  if (known && known.publicKey !== identity.publicKey) {
+    throw new Error("This peer's key differs from the key saved in your contacts.");
+  }
+  return { id: identity.id, displayName: identity.displayName.slice(0, 32), publicKey: identity.publicKey, importedKey: publicKey };
+}
+
+function verificationTranscript(from, to, nonce) {
+  return ["redro-connect-verify-v1", from, to, nonce].join("|");
+}
+
+async function beginPeerVerification() {
+  if (!dataChannel || dataChannel.readyState !== "open" || !peerIdentity || !currentIdentity) return;
+  peerVerified = false;
+  verificationReceived = false;
+  const nonceBytes = crypto.getRandomValues(new Uint8Array(32));
+  const nonce = toBase64(nonceBytes);
+  const transcript = verificationTranscript(currentIdentity.id, peerIdentity.id, nonce);
+  const signature = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    currentIdentity.privateKey,
+    new TextEncoder().encode(transcript)
+  );
+  dataChannel.send(JSON.stringify({
+    type: "identity-proof",
+    from: currentIdentity.id,
+    to: peerIdentity.id,
+    nonce,
+    signature: toBase64(signature)
+  }));
+  updateConnectionStatus("Checking peer identity");
+  byId("verificationNotice").textContent = "Checking that this contact owns the private key for their Redro ID…";
+  byId("verificationNotice").hidden = false;
+}
+
+async function receiveIdentityProof(payload) {
+  if (!peerIdentity || payload.from !== peerIdentity.id || payload.to !== currentIdentity.id ||
+      typeof payload.nonce !== "string" || typeof payload.signature !== "string" ||
+      payload.nonce.length > 128 || payload.signature.length > 256) return;
+  const validated = await validateSignalIdentity(peerIdentity);
+  const transcript = verificationTranscript(payload.from, payload.to, payload.nonce);
+  let signature;
+  try {
+    const binary = atob(payload.signature);
+    signature = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  } catch {
+    return;
+  }
+  const valid = await crypto.subtle.verify(
+    { name: "ECDSA", hash: "SHA-256" },
+    validated.importedKey,
+    signature,
+    new TextEncoder().encode(transcript)
+  );
+  if (!valid) {
+    updateConnectionStatus("Identity check failed");
+    byId("verificationNotice").textContent = "Identity verification failed. Do not send messages.";
+    byId("verificationNotice").hidden = false;
+    return;
+  }
+  verificationReceived = true;
+  peerVerified = true;
+  updateConnectionStatus("Identity verified", true);
+  byId("verificationNotice").textContent = "Identity verified: this peer proved possession of the private key matching their Redro ID.";
+  byId("verificationNotice").hidden = false;
+  showToast("Peer identity verified.");
 }
 
 function updateConnectionStatus(text, connected = false) {
@@ -574,7 +661,17 @@ async function receiveDataChannelMessage(event) {
   } catch {
     return;
   }
-  if (payload?.type !== "message" || typeof payload.text !== "string" || payload.text.length > 4000) return;
+  if (payload?.type === "identity-proof") {
+    try {
+      await receiveIdentityProof(payload);
+    } catch {
+      updateConnectionStatus("Identity check failed");
+      byId("verificationNotice").textContent = "Could not verify this peer identity. Do not send messages.";
+      byId("verificationNotice").hidden = false;
+    }
+    return;
+  }
+  if (payload?.type !== "message" || !peerVerified || typeof payload.id !== "string" || typeof payload.text !== "string" || payload.text.length > 4000) return;
   const message = {
     key: activeConversationId + ":" + payload.id,
     conversationId: activeConversationId,
@@ -594,10 +691,16 @@ async function receiveDataChannelMessage(event) {
 
 function configureDataChannel(channel) {
   dataChannel = channel;
-  dataChannel.onopen = () => {
-    updateConnectionStatus("Connected directly", true);
+  dataChannel.onopen = async () => {
+    updateConnectionStatus("Connected — verifying identity");
     byId("chatPanel").hidden = false;
-    showToast("Direct connection established.");
+    try {
+      await beginPeerVerification();
+    } catch {
+      updateConnectionStatus("Identity check failed");
+      byId("verificationNotice").textContent = "Identity verification could not start. Do not send messages.";
+      byId("verificationNotice").hidden = false;
+    }
     loadActiveConversation();
   };
   dataChannel.onclose = () => {
@@ -661,8 +764,9 @@ async function acceptInvitation() {
     byId("makeAnswerButton").disabled = true;
     updateConnectionStatus("Reading invitation");
     const packet = parseSignal(code, "offer");
+    const verifiedIdentity = await validateSignalIdentity(packet.from);
     const connection = createPeerConnection();
-    setPeer(packet.from);
+    setPeer(verifiedIdentity);
     await connection.setRemoteDescription(packet.sdp);
     const answer = await connection.createAnswer();
     await connection.setLocalDescription(answer);
@@ -683,11 +787,12 @@ async function applyAnswer() {
     const code = extractSignalCode(byId("answerInput").value);
     if (!code) throw new Error("Paste the reply code first.");
     const packet = parseSignal(code, "answer");
+    const verifiedIdentity = await validateSignalIdentity(packet.from);
     if (!peerConnection || peerConnection.signalingState !== "have-local-offer") {
       throw new Error("Create a new invitation before applying a reply.");
     }
     await peerConnection.setRemoteDescription(packet.sdp);
-    setPeer(packet.from);
+    setPeer(verifiedIdentity);
     updateConnectionStatus("Connecting…");
     showToast("Reply accepted. Connecting directly…");
   } catch (error) {
@@ -702,6 +807,10 @@ async function sendMessage(event) {
   if (!text || !activeConversationId) return;
   if (!dataChannel || dataChannel.readyState !== "open") {
     showToast("The direct connection is not open.");
+    return;
+  }
+  if (!peerVerified) {
+    showToast("Wait until the peer identity is verified.");
     return;
   }
   const payload = { type: "message", id: crypto.randomUUID(), text, timestamp: Date.now() };
@@ -734,6 +843,8 @@ function disconnectPeer() {
     peerConnection = null;
   }
   peerIdentity = null;
+  peerVerified = false;
+  verificationReceived = false;
   activeConversationId = null;
   messageHistory = [];
   byId("chatPanel").hidden = true;
