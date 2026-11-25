@@ -66,3 +66,12 @@ Serve the repository over localhost or HTTPS. Camera, microphone, Web Crypto, se
 - It displays the latest message preview, local message count, and last activity time for up to eight conversations.
 - The summary is read-only and does not create a server-side conversation index or synchronize data between devices.
 - Removing a contact does not delete its locally stored message history.
+
+
+## Exporting local message history
+
+- The Recent conversations section includes a user-triggered JSON export of all locally stored messages.
+- The export contains message text, sender metadata, conversation IDs, and timestamps.
+- The export is generated in the browser and is not uploaded to Redro or another server.
+- Anyone who obtains the exported file may be able to read its contents. Store and share it carefully.
+- Import and cross-device restoration are intentionally not implemented yet; untrusted message archives must be validated before any import feature is added.
