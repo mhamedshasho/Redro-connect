@@ -899,7 +899,7 @@ byId("shareIdButton")?.addEventListener("click", shareIdentity);
 byId("closeIdentityDialog")?.addEventListener("click", () => {
   if (currentIdentity) byId("identityDialog").close();
 });
-byId("createOfferButton")?.addEventListener("click", createInvitation);
+byId("createOfferButton")?.addEventListener("click", () => createInvitation());
 byId("acceptOfferButton")?.addEventListener("click", () => {
   byId("answerStep").hidden = false;
   byId("offerStep").hidden = true;
