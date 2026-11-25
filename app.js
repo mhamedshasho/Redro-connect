@@ -188,6 +188,71 @@ async function loadMessages(conversationId) {
   });
 }
 
+async function loadRecentConversations() {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(MESSAGE_STORE, "readonly");
+    const request = transaction.objectStore(MESSAGE_STORE).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error("Could not load recent conversations."));
+    transaction.oncomplete = () => database.close();
+    transaction.onerror = () => database.close();
+  });
+}
+
+async function renderRecentConversations() {
+  const list = byId("recentConversationList");
+  if (!list) return;
+  try {
+    const [messages, contacts] = await Promise.all([loadRecentConversations(), getContacts()]);
+    const contactNames = new Map(contacts.map((contact) => [contact.id, contact.displayName]));
+    const grouped = new Map();
+    for (const message of messages) {
+      if (!message.conversationId || typeof message.text !== "string") continue;
+      const current = grouped.get(message.conversationId);
+      if (!current || Number(message.timestamp) > Number(current.latest.timestamp)) {
+        grouped.set(message.conversationId, {
+          id: message.conversationId,
+          latest: message,
+          count: (current?.count || 0) + 1
+        });
+      } else {
+        current.count += 1;
+      }
+    }
+    const recent = [...grouped.values()].sort((a, b) => Number(b.latest.timestamp) - Number(a.latest.timestamp)).slice(0, 8);
+    list.replaceChildren();
+    if (!recent.length) {
+      const empty = document.createElement("div");
+      empty.className = "recent-empty";
+      empty.textContent = "Your saved conversations will appear here after your first message.";
+      list.append(empty);
+      return;
+    }
+    for (const conversation of recent) {
+      const item = document.createElement("article");
+      item.className = "recent-item";
+      const details = document.createElement("div");
+      details.className = "recent-details";
+      const title = document.createElement("b");
+      title.textContent = contactNames.get(conversation.id) || conversation.latest.senderName || conversation.id;
+      const preview = document.createElement("p");
+      preview.textContent = conversation.latest.text;
+      const meta = document.createElement("small");
+      const date = new Date(Number(conversation.latest.timestamp) || Date.now());
+      meta.textContent = conversation.count + (conversation.count === 1 ? " message · " : " messages · ") + date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+      details.append(title, preview, meta);
+      const identifier = document.createElement("span");
+      identifier.className = "recent-id";
+      identifier.textContent = conversation.id;
+      item.append(details, identifier);
+      list.append(item);
+    }
+  } catch (error) {
+    showToast(error.message || "Could not load recent conversations.");
+  }
+}
+
 function toBase64(bytes) {
   let binary = "";
   new Uint8Array(bytes).forEach((byte) => { binary += String.fromCharCode(byte); });
@@ -690,6 +755,7 @@ async function receiveDataChannelMessage(event) {
     await saveMessage(message);
     messageHistory.push(message);
     renderMessages();
+    renderRecentConversations();
   } catch {
     showToast("Received a message but could not save it locally.");
   }
@@ -839,6 +905,7 @@ async function sendMessage(event) {
     messageHistory.push(message);
     input.value = "";
     renderMessages();
+    renderRecentConversations();
   } catch {
     showToast("Message could not be sent or saved. Please try again.");
   }
@@ -914,6 +981,7 @@ byId("disconnectButton")?.addEventListener("click", disconnectPeer);
 
 checkCapabilities();
 initializeIdentity();
+renderRecentConversations();
 
 if ("serviceWorker" in navigator && window.isSecureContext) {
   window.addEventListener("load", () => {
