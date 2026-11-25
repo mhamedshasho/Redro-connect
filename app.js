@@ -19,6 +19,7 @@ let activeConversationId = null;
 let messageHistory = [];
 let peerVerified = false;
 let verificationReceived = false;
+let expectedPeerIdentity = null;
 
 function setCapability(name, available, detail) {
   const status = byId(name + "Status");
@@ -406,6 +407,11 @@ function renderContacts(contacts) {
     const id = document.createElement("small");
     id.textContent = contact.id;
     details.append(name, id);
+    const connect = document.createElement("button");
+    connect.className = "contact-connect";
+    connect.type = "button";
+    connect.textContent = "Connect";
+    connect.addEventListener("click", () => createInvitation(contact));
     const remove = document.createElement("button");
     remove.className = "contact-remove";
     remove.type = "button";
@@ -421,7 +427,7 @@ function renderContacts(contacts) {
         showToast(error.message);
       }
     });
-    item.append(avatar, details, remove);
+    item.append(avatar, details, connect, remove);
     list.append(item);
   }
 }
@@ -726,12 +732,13 @@ function createPeerConnection() {
   return peerConnection;
 }
 
-async function createInvitation() {
+async function createInvitation(targetContact = null) {
   if (!currentIdentity) {
     openIdentityDialog();
     return;
   }
   try {
+    expectedPeerIdentity = targetContact ? { id: targetContact.id, publicKey: targetContact.publicKey, displayName: targetContact.displayName } : null;
     byId("offerStep").hidden = false;
     byId("answerStep").hidden = true;
     byId("createOfferButton").disabled = true;
@@ -765,6 +772,7 @@ async function acceptInvitation() {
     updateConnectionStatus("Reading invitation");
     const packet = parseSignal(code, "offer");
     const verifiedIdentity = await validateSignalIdentity(packet.from);
+    expectedPeerIdentity = { id: verifiedIdentity.id, publicKey: verifiedIdentity.publicKey, displayName: verifiedIdentity.displayName };
     const connection = createPeerConnection();
     setPeer(verifiedIdentity);
     await connection.setRemoteDescription(packet.sdp);
@@ -788,6 +796,9 @@ async function applyAnswer() {
     if (!code) throw new Error("Paste the reply code first.");
     const packet = parseSignal(code, "answer");
     const verifiedIdentity = await validateSignalIdentity(packet.from);
+    if (expectedPeerIdentity && (verifiedIdentity.id !== expectedPeerIdentity.id || verifiedIdentity.publicKey !== expectedPeerIdentity.publicKey)) {
+      throw new Error("The reply is not from the contact you selected.");
+    }
     if (!peerConnection || peerConnection.signalingState !== "have-local-offer") {
       throw new Error("Create a new invitation before applying a reply.");
     }
@@ -845,6 +856,7 @@ function disconnectPeer() {
   peerIdentity = null;
   peerVerified = false;
   verificationReceived = false;
+  expectedPeerIdentity = null;
   activeConversationId = null;
   messageHistory = [];
   byId("chatPanel").hidden = true;
