@@ -219,11 +219,25 @@ async function copyIdentity() {
   }
 }
 
+function toBase64Url(value) {
+  return btoa(unescape(encodeURIComponent(value)))
+    .replace(/\\+/g, "-")
+    .replace(/\\//g, "_")
+    .replace(/=+$/g, "");
+}
+
 async function shareIdentity() {
   if (!currentIdentity) return;
+  const contactCard = {
+    version: 1,
+    id: currentIdentity.id,
+    displayName: currentIdentity.displayName,
+    publicKey: currentIdentity.publicKey
+  };
+  const encodedCard = toBase64Url(JSON.stringify(contactCard));
   const shareData = {
-    title: "My Redro Connect ID",
-    text: "Add me on Redro Connect: " + currentIdentity.id
+    title: "My Redro Connect contact",
+    text: "Add me on Redro Connect.\nID: " + currentIdentity.id + "\nContact card: REDRO1:" + encodedCard
   };
   if (navigator.share) {
     try {
