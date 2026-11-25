@@ -39,6 +39,13 @@ The identity is currently tied to this browser's local storage. Clearing site da
 - A public STUN server is configured for NAT discovery; it does not store chat messages. No TURN relay is configured.
 - Connection setup is manual in this milestone; a stable Redro ID alone cannot locate a device.
 
+## Local contacts milestone
+
+- Imports REDRO1 contact cards and validates the P-256 public key.
+- Recomputes the SHA-256 fingerprint and rejects a card whose Redro ID does not match its public key.
+- Saves contacts locally in IndexedDB and supports removal.
+- Contact import does not create a network connection or prove that the person controls the private key. Connection-code identity verification is a separate security milestone.
+
 ## Important network limitation
 
 A stable user ID is not, by itself, a network address. Automatic peer discovery and connection setup require a signaling mechanism. Some network combinations also require STUN and, occasionally, TURN. TURN relays traffic and may consume bandwidth; it is not permanent message storage. The project will measure and document these dependencies rather than hide them.
