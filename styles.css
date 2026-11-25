@@ -141,3 +141,6 @@ footer span{color:var(--red);padding:0 5px}
 .contact-details small{font-size:9px;color:var(--muted);overflow-wrap:anywhere}
 .contact-remove{border:1px solid #4a3035;background:#2b1d22;color:#ff9297;border-radius:9px;padding:8px 10px;font-size:10px}
 @media(max-width:700px){.contacts-panel{padding:15px}.contact-item{gap:8px}.contact-remove{padding:8px}}
+
+.verification-notice{margin:0 16px 12px;padding:11px 13px;border:1px solid #6b5228;border-radius:10px;background:#282116;color:#f0c77b;font-size:11px;line-height:1.6}
+.verification-notice[hidden]{display:none}
