@@ -418,7 +418,7 @@ async function receiveDataChannelMessage(event) {
     senderId: peerIdentity?.id || "unknown",
     senderName: peerIdentity?.displayName || "Contact",
     text: payload.text,
-    timestamp: payload.timestamp || new Date().toISOString()
+    timestamp: Number(payload.timestamp) || Date.now()
   };
   try {
     await saveMessage(message);
