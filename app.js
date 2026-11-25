@@ -235,7 +235,7 @@ async function renderRecentConversations() {
       const details = document.createElement("div");
       details.className = "recent-details";
       const title = document.createElement("b");
-      title.textContent = contactNames.get(conversation.id) || conversation.latest.senderName || conversation.id;
+      title.textContent = contactNames.get(conversation.id) || conversation.latest.peerName || conversation.latest.senderName || conversation.id;
       const preview = document.createElement("p");
       preview.textContent = conversation.latest.text;
       const meta = document.createElement("small");
@@ -500,6 +500,7 @@ function renderContacts(contacts) {
 async function refreshContacts() {
   try {
     renderContacts(await getContacts());
+    renderRecentConversations();
   } catch (error) {
     showToast(error.message || "Could not load contacts.");
   }
@@ -748,6 +749,7 @@ async function receiveDataChannelMessage(event) {
     conversationId: activeConversationId,
     senderId: peerIdentity?.id || "unknown",
     senderName: peerIdentity?.displayName || "Contact",
+    peerName: peerIdentity?.displayName || "Contact",
     text: payload.text,
     timestamp: Number(payload.timestamp) || Date.now()
   };
@@ -896,6 +898,7 @@ async function sendMessage(event) {
     conversationId: activeConversationId,
     senderId: currentIdentity.id,
     senderName: currentIdentity.displayName,
+    peerName: peerIdentity?.displayName || activeConversationId,
     text,
     timestamp: payload.timestamp
   };
@@ -958,6 +961,7 @@ async function initializeIdentity() {
 
 byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);
 byId("addContactButton")?.addEventListener("click", addContactFromCard);
+byId("refreshRecentConversations")?.addEventListener("click", renderRecentConversations);
 byId("newChatButton")?.addEventListener("click", showSetupNotice);
 byId("profileButton")?.addEventListener("click", openIdentityDialog);
 byId("identityForm")?.addEventListener("submit", handleIdentitySubmit);
