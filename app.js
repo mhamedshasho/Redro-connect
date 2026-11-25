@@ -605,7 +605,6 @@ async function initializeIdentity() {
 
 byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);
 byId("newChatButton")?.addEventListener("click", showSetupNotice);
-byId("emptyNewChatButton")?.addEventListener("click", showSetupNotice);
 byId("profileButton")?.addEventListener("click", openIdentityDialog);
 byId("identityForm")?.addEventListener("submit", handleIdentitySubmit);
 byId("copyIdButton")?.addEventListener("click", copyIdentity);
