@@ -44,7 +44,11 @@ The identity is currently tied to this browser's local storage. Clearing site da
 - Imports REDRO1 contact cards and validates the P-256 public key.
 - Recomputes the SHA-256 fingerprint and rejects a card whose Redro ID does not match its public key.
 - Saves contacts locally in IndexedDB and supports removal.
-- Contact import does not create a network connection or prove that the person controls the private key. Connection-code identity verification is a separate security milestone.
+- Contact import does not create a network connection or prove that the person controls the private key.
+- Connection codes include the peer public key and are checked against the Redro ID fingerprint before WebRTC setup.
+- After the DataChannel opens, both peers sign fresh random challenges with their local ECDSA private keys. The receiving peer verifies the signature against the public key and checks that the challenge is addressed to its own Redro ID.
+- Text sending is blocked until a valid peer proof is received. A saved contact's public key must match the key presented in the connection code.
+- This is proof of possession of the key matching the Redro ID, not proof of a real-world person's name or an independent end-to-end security audit.
 
 ## Important network limitation
 
