@@ -245,7 +245,12 @@ async function shareIdentity() {
       if (error?.name !== "AbortError") showToast("Sharing is unavailable on this device.");
     }
   } else {
-    await copyIdentity();
+    try {
+      await navigator.clipboard.writeText(shareData.text);
+      showToast("Contact card copied.");
+    } catch {
+      showToast("Sharing is unavailable on this device.");
+    }
   }
 }
 
