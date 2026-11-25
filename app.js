@@ -155,7 +155,8 @@ async function deleteContact(id) {
     };
   });
 }
-\nasync function saveMessage(message) {
+
+async function saveMessage(message) {
   const database = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(MESSAGE_STORE, "readwrite");
@@ -454,7 +455,8 @@ async function addContactFromCard() {
     button.disabled = false;
   }
 }
-\nfunction parseSignal(value, expectedKind) {
+
+function parseSignal(value, expectedKind) {
   let packet;
   try {
     packet = JSON.parse(fromBase64Url(value.trim()));
@@ -764,7 +766,8 @@ async function initializeIdentity() {
   }
 }
 
-byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);\nbyId("addContactButton")?.addEventListener("click", addContactFromCard);
+byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);
+byId("addContactButton")?.addEventListener("click", addContactFromCard);
 byId("newChatButton")?.addEventListener("click", showSetupNotice);
 byId("profileButton")?.addEventListener("click", openIdentityDialog);
 byId("identityForm")?.addEventListener("submit", handleIdentitySubmit);
