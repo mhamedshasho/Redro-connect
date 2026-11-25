@@ -220,12 +220,11 @@ async function copyIdentity() {
 }
 
 function toBase64Url(value) {
-  return btoa(unescape(encodeURIComponent(value)))
-    .replace(/\\+/g, "-")
-    .replace(/\\//g, "_")
-    .replace(/=+$/g, "");
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
-
 async function shareIdentity() {
   if (!currentIdentity) return;
   const contactCard = {
