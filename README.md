@@ -16,19 +16,26 @@ A local-first, peer-to-peer communication PWA for Android and desktop.
 
 - Vanilla HTML, CSS, and JavaScript
 - PWA: Web App Manifest and Service Worker
-- IndexedDB for local conversation data
+- IndexedDB for local identity and conversation data
 - WebRTC for peer messaging and audio/video
 - Web Crypto API for cryptographic primitives
 - HTTPS hosting (GitHub Pages is the intended static host)
+
+## Current milestone: local identity
+
+- Creates a P-256 ECDSA identity key pair in the browser.
+- Derives a stable Redro ID from the SHA-256 fingerprint of the public key.
+- Stores the non-extractable private CryptoKey and public key locally in IndexedDB.
+- Stores the display name locally and allows it to be edited.
+- Supports copying and sharing the Redro ID.
+- Does not upload identity data or private keys.
+
+The identity is currently tied to this browser's local storage. Clearing site data or losing the device can permanently remove it. Encrypted identity backup and migration are future work and must be designed before multi-device identity is promised.
 
 ## Important network limitation
 
 A stable user ID is not, by itself, a network address. Automatic peer discovery and connection setup require a signaling mechanism. Some network combinations also require STUN and, occasionally, TURN. TURN relays traffic and may consume bandwidth; it is not permanent message storage. The project will measure and document these dependencies rather than hide them.
 
-## Development status
-
-The repository is being initialized. The first milestone is a responsive PWA shell with capability detection and local-only data foundations. Real peer messaging and calling will be implemented and tested in later milestones.
-
 ## Run locally
 
-Serve the repository over localhost or HTTPS. Camera, microphone, service worker, and PWA installation features require a secure context.
+Serve the repository over localhost or HTTPS. Camera, microphone, Web Crypto, service worker, and PWA installation features require a secure context.
