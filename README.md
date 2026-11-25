@@ -58,3 +58,11 @@ A stable user ID is not, by itself, a network address. Automatic peer discovery 
 ## Run locally
 
 Serve the repository over localhost or HTTPS. Camera, microphone, Web Crypto, service worker, and PWA installation features require a secure context.
+
+
+## Local conversation overview
+
+- The home screen derives a recent-conversation summary from the messages already stored in this browser.
+- It displays the latest message preview, local message count, and last activity time for up to eight conversations.
+- The summary is read-only and does not create a server-side conversation index or synchronize data between devices.
+- Removing a contact does not delete its locally stored message history.
