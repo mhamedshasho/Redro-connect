@@ -48,6 +48,7 @@ The identity is currently tied to this browser's local storage. Clearing site da
 - Connection codes include the peer public key and are checked against the Redro ID fingerprint before WebRTC setup.
 - After the DataChannel opens, both peers sign fresh random challenges with their local ECDSA private keys. The receiving peer verifies the signature against the public key and checks that the challenge is addressed to its own Redro ID.
 - Text sending is blocked until a valid peer proof is received. A saved contact's public key must match the key presented in the connection code.
+- A saved contact can start a connection invitation directly from the contacts list. When an invitation was started for a specific saved contact, the reply must present the exact same Redro ID and public key.
 - This is proof of possession of the key matching the Redro ID, not proof of a real-world person's name or an independent end-to-end security audit.
 
 ## Important network limitation
