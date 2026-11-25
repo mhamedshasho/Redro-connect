@@ -75,6 +75,24 @@
         <span class="local-badge"><i></i> Stored on this device</span>
       </section>
 
+      <section class="contacts-panel">
+        <div class="capability-heading">
+          <div>
+            <p class="eyebrow">YOUR PEOPLE</p>
+            <h2>Contacts</h2>
+          </div>
+          <span class="local-badge"><i></i> Saved locally</span>
+        </div>
+        <p class="connection-help">Add someone using their complete REDRO1 contact card. A Redro ID by itself is not enough to verify or connect to a device.</p>
+        <label class="contact-label" for="contactCardInput">Contact card</label>
+        <textarea id="contactCardInput" rows="3" placeholder="Paste a REDRO1: contact card here"></textarea>
+        <button class="primary-button" id="addContactButton">Add contact</button>
+        <p class="form-error" id="contactError" role="alert" hidden></p>
+        <div class="contact-list" id="contactList">
+          <div class="contacts-empty" id="contactsEmpty">No contacts yet. Add a contact card to get started.</div>
+        </div>
+      </section>
+
       <section class="connection-panel" id="connectionPanel">
         <div class="capability-heading">
           <div>
