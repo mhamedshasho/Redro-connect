@@ -75,11 +75,54 @@
         <span class="local-badge"><i></i> Stored on this device</span>
       </section>
 
-      <section class="empty-state" id="emptyState">
-        <div class="empty-icon">⌁</div>
-        <h3>No conversations yet</h3>
-        <p>Your conversation list will appear here. Your local data stays in this browser on this device.</p>
-        <button class="secondary-button" id="emptyNewChatButton">Start your first chat</button>
+      <section class="connection-panel">
+        <div class="capability-heading">
+          <div>
+            <p class="eyebrow">PEER-TO-PEER CONNECTION</p>
+            <h2>Connect without an account server</h2>
+          </div>
+          <span class="connection-status" id="connectionStatus"><i></i> Not connected</span>
+        </div>
+        <p class="connection-help">Exchange a one-time connection code with the other person. The code can be sent through any channel you trust. Messages then travel directly between browsers.</p>
+        <div class="connection-actions">
+          <button class="primary-button" id="createOfferButton">Create invitation</button>
+          <button class="secondary-button" id="acceptOfferButton">Join with invitation</button>
+        </div>
+        <div class="signal-step" id="offerStep" hidden>
+          <label for="offerOutput">1. Send this invitation to your contact</label>
+          <textarea id="offerOutput" rows="5" readonly placeholder="Your invitation code will appear here"></textarea>
+          <button class="secondary-button" id="copyOfferButton">Copy invitation</button>
+          <label for="answerInput">2. Paste the reply code from your contact</label>
+          <textarea id="answerInput" rows="5" placeholder="Paste the answer code here"></textarea>
+          <button class="primary-button" id="applyAnswerButton">Connect</button>
+        </div>
+        <div class="signal-step" id="answerStep" hidden>
+          <label for="offerInput">Paste the invitation code you received</label>
+          <textarea id="offerInput" rows="5" placeholder="Paste invitation code here"></textarea>
+          <button class="primary-button" id="makeAnswerButton">Create reply code</button>
+          <label for="answerOutput">Send this reply code back</label>
+          <textarea id="answerOutput" rows="5" readonly placeholder="Your reply code will appear here"></textarea>
+          <button class="secondary-button" id="copyAnswerButton">Copy reply code</button>
+        </div>
+      </section>
+
+      <section class="chat-panel" id="chatPanel" hidden>
+        <div class="chat-heading">
+          <div class="peer-avatar" id="peerAvatar">P</div>
+          <div class="peer-details">
+            <h2 id="peerName">Connected peer</h2>
+            <p id="peerId">Peer-to-peer connection</p>
+          </div>
+          <button class="secondary-button" id="disconnectButton">Disconnect</button>
+        </div>
+        <div class="message-list" id="messageList" aria-live="polite">
+          <div class="chat-empty" id="chatEmpty">Your direct conversation starts here.</div>
+        </div>
+        <form class="message-composer" id="messageForm">
+          <textarea id="messageInput" rows="1" maxlength="4000" placeholder="Write a message…" aria-label="Message" required></textarea>
+          <button class="primary-button" type="submit" id="sendMessageButton">Send</button>
+        </form>
+        <p class="chat-local-note">Messages are saved in this browser only. No message-history server is used.</p>
       </section>
 
       <section class="capability-panel">
