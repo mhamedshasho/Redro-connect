@@ -2,6 +2,7 @@ const byId = (id) => document.getElementById(id);
 const IDENTITY_DB = "redro-connect-local";
 const IDENTITY_STORE = "identity";
 const MESSAGE_STORE = "messages";
+const CONTACT_STORE = "contacts";
 const IDENTITY_KEY = "primary";
 const SIGNAL_PROTOCOL = "redro-connect";
 const SIGNAL_VERSION = 1;
@@ -55,7 +56,7 @@ function openDatabase() {
       reject(new Error("This browser does not support local storage."));
       return;
     }
-    const request = indexedDB.open(IDENTITY_DB, 2);
+    const request = indexedDB.open(IDENTITY_DB, 3);
     request.onupgradeneeded = () => {
       const database = request.result;
       if (!database.objectStoreNames.contains(IDENTITY_STORE)) {
@@ -64,6 +65,9 @@ function openDatabase() {
       if (!database.objectStoreNames.contains(MESSAGE_STORE)) {
         const store = database.createObjectStore(MESSAGE_STORE, { keyPath: "key" });
         store.createIndex("conversationId", "conversationId", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(CONTACT_STORE)) {
+        database.createObjectStore(CONTACT_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -105,7 +109,53 @@ async function saveIdentity(identity) {
   });
 }
 
-async function saveMessage(message) {
+
+async function saveContact(contact) {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(CONTACT_STORE, "readwrite");
+    transaction.objectStore(CONTACT_STORE).put(contact);
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      const error = transaction.error || new Error("Could not save this contact.");
+      database.close();
+      reject(error);
+    };
+  });
+}
+
+async function getContacts() {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(CONTACT_STORE, "readonly");
+    const request = transaction.objectStore(CONTACT_STORE).getAll();
+    request.onsuccess = () => resolve((request.result || []).sort((a, b) => a.displayName.localeCompare(b.displayName)));
+    request.onerror = () => reject(request.error || new Error("Could not load contacts."));
+    transaction.oncomplete = () => database.close();
+    transaction.onerror = () => database.close();
+  });
+}
+
+async function deleteContact(id) {
+  const database = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(CONTACT_STORE, "readwrite");
+    transaction.objectStore(CONTACT_STORE).delete(id);
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      const error = transaction.error || new Error("Could not remove this contact.");
+      database.close();
+      reject(error);
+    };
+  });
+}
+\nasync function saveMessage(message) {
   const database = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(MESSAGE_STORE, "readwrite");
@@ -293,7 +343,118 @@ async function shareIdentity() {
   }
 }
 
-function parseSignal(value, expectedKind) {
+
+async function validateContactCard(rawText) {
+  const match = rawText.trim().match(/REDRO1:([A-Za-z0-9_-]+)/);
+  if (!match) throw new Error("Paste the complete REDRO1 contact card.");
+  let card;
+  try {
+    card = JSON.parse(fromBase64Url(match[1]));
+  } catch {
+    throw new Error("The contact card is damaged or incomplete.");
+  }
+  if (card?.version !== 1 || typeof card.id !== "string" || typeof card.displayName !== "string" || typeof card.publicKey !== "string") {
+    throw new Error("This contact card format is not supported.");
+  }
+  if (card.displayName.trim().length < 1 || card.displayName.length > 32 || card.publicKey.length > 2048) {
+    throw new Error("The contact card contains invalid details.");
+  }
+  let keyBytes;
+  try {
+    const binary = atob(card.publicKey);
+    keyBytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    await crypto.subtle.importKey("spki", keyBytes, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  } catch {
+    throw new Error("The public key in this contact card is invalid.");
+  }
+  const fingerprint = await crypto.subtle.digest("SHA-256", keyBytes);
+  const expectedId = "REDRO-" + toBase32(fingerprint).slice(0, 20);
+  if (card.id !== expectedId) throw new Error("The Redro ID does not match the contact's public key.");
+  if (currentIdentity && card.id === currentIdentity.id) throw new Error("You cannot add your own identity.");
+  return {
+    id: card.id,
+    displayName: card.displayName.trim(),
+    publicKey: card.publicKey,
+    addedAt: new Date().toISOString(),
+    version: 1
+  };
+}
+
+function renderContacts(contacts) {
+  const list = byId("contactList");
+  list.replaceChildren();
+  if (!contacts.length) {
+    const empty = document.createElement("div");
+    empty.className = "contacts-empty";
+    empty.textContent = "No contacts yet. Add a contact card to get started.";
+    list.append(empty);
+    return;
+  }
+  for (const contact of contacts) {
+    const item = document.createElement("article");
+    item.className = "contact-item";
+    const avatar = document.createElement("span");
+    avatar.className = "contact-avatar";
+    avatar.textContent = contact.displayName.charAt(0).toUpperCase() || "R";
+    const details = document.createElement("span");
+    details.className = "contact-details";
+    const name = document.createElement("b");
+    name.textContent = contact.displayName;
+    const id = document.createElement("small");
+    id.textContent = contact.id;
+    details.append(name, id);
+    const remove = document.createElement("button");
+    remove.className = "contact-remove";
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", "Remove " + contact.displayName);
+    remove.addEventListener("click", async () => {
+      if (!window.confirm("Remove " + contact.displayName + " from your contacts?")) return;
+      try {
+        await deleteContact(contact.id);
+        await refreshContacts();
+        showToast("Contact removed from this device.");
+      } catch (error) {
+        showToast(error.message);
+      }
+    });
+    item.append(avatar, details, remove);
+    list.append(item);
+  }
+}
+
+async function refreshContacts() {
+  try {
+    renderContacts(await getContacts());
+  } catch (error) {
+    showToast(error.message || "Could not load contacts.");
+  }
+}
+
+async function addContactFromCard() {
+  const input = byId("contactCardInput");
+  const error = byId("contactError");
+  const button = byId("addContactButton");
+  error.hidden = true;
+  button.disabled = true;
+  try {
+    const contact = await validateContactCard(input.value);
+    const existing = await getContacts();
+    if (existing.some((item) => item.id === contact.id)) {
+      throw new Error("This contact is already in your list.");
+    }
+    await saveContact(contact);
+    input.value = "";
+    await refreshContacts();
+    showToast(contact.displayName + " added to contacts.");
+  } catch (failure) {
+    error.textContent = failure.message || "Could not add this contact.";
+    error.hidden = false;
+  } finally {
+    button.disabled = false;
+  }
+}
+\nfunction parseSignal(value, expectedKind) {
   let packet;
   try {
     packet = JSON.parse(fromBase64Url(value.trim()));
@@ -603,7 +764,7 @@ async function initializeIdentity() {
   }
 }
 
-byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);
+byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);\nbyId("addContactButton")?.addEventListener("click", addContactFromCard);
 byId("newChatButton")?.addEventListener("click", showSetupNotice);
 byId("profileButton")?.addEventListener("click", openIdentityDialog);
 byId("identityForm")?.addEventListener("submit", handleIdentitySubmit);
