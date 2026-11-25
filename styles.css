@@ -144,3 +144,7 @@ footer span{color:var(--red);padding:0 5px}
 
 .verification-notice{margin:0 16px 12px;padding:11px 13px;border:1px solid #6b5228;border-radius:10px;background:#282116;color:#f0c77b;font-size:11px;line-height:1.6}
 .verification-notice[hidden]{display:none}
+
+.contact-connect{border:1px solid #3c4656;background:#202936;color:#cbd8ed;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:700;white-space:nowrap}
+.contact-connect:hover{border-color:var(--red);color:#fff}
+@media(max-width:480px){.contact-item{flex-wrap:wrap}.contact-details{flex-basis:calc(100% - 60px)}.contact-connect{margin-left:49px}.contact-remove{margin-left:auto}}
