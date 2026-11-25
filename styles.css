@@ -148,3 +148,16 @@ footer span{color:var(--red);padding:0 5px}
 .contact-connect{border:1px solid #3c4656;background:#202936;color:#cbd8ed;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:700;white-space:nowrap}
 .contact-connect:hover{border-color:var(--red);color:#fff}
 @media(max-width:480px){.contact-item{flex-wrap:wrap}.contact-details{flex-basis:calc(100% - 60px)}.contact-connect{margin-left:49px}.contact-remove{margin-left:auto}}
+
+
+.recent-panel{margin-top:22px;padding:21px;border:1px solid var(--line);border-radius:17px;background:#171a20}
+.recent-panel .capability-heading{align-items:center}
+.recent-list{display:grid;gap:8px;margin-top:14px}
+.recent-empty{padding:18px;text-align:center;border:1px dashed #373c47;border-radius:12px;color:var(--muted);font-size:11px;line-height:1.6}
+.recent-item{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);min-width:0}
+.recent-details{min-width:0;flex:1}
+.recent-details b{display:block;font-size:12px;overflow-wrap:anywhere}
+.recent-details p{font-size:11px;line-height:1.5;color:#c4c9d2;margin:5px 0;overflow-wrap:anywhere;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.recent-details small{font-size:9px;color:var(--muted)}
+.recent-id{max-width:180px;color:#ff777c;font-size:9px;overflow-wrap:anywhere;text-align:right}
+@media(max-width:700px){.recent-panel{padding:15px}.recent-item{align-items:flex-start;flex-direction:column;gap:6px}.recent-id{max-width:none;text-align:left}}
