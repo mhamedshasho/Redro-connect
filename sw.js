@@ -1,4 +1,4 @@
-const CACHE_NAME = "redro-connect-shell-v4";
+const CACHE_NAME = "redro-connect-shell-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
