@@ -81,9 +81,12 @@
             <p class="eyebrow">LOCAL MESSAGE HISTORY</p>
             <h2>Recent conversations</h2>
           </div>
-          <button class="text-button" id="refreshRecentConversations" type="button">Refresh ↻</button>
+          <div class="recent-actions">
+            <button class="text-button" id="refreshRecentConversations" type="button">Refresh ↻</button>
+            <button class="secondary-button" id="exportHistoryButton" type="button">Export history</button>
+          </div>
         </div>
-        <p class="connection-help">A summary of conversations saved in this browser. Messages are not synchronized between your devices.</p>
+        <p class="connection-help">A summary of conversations saved in this browser. Messages are not synchronized between your devices. Export creates a private JSON file on this device; anyone with that file can read its contents.</p>
         <div class="recent-list" id="recentConversationList">
           <div class="recent-empty">Loading local conversation history…</div>
         </div>
