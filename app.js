@@ -200,6 +200,36 @@ async function loadRecentConversations() {
   });
 }
 
+async function exportLocalHistory() {
+  const button = byId("exportHistoryButton");
+  if (button) button.disabled = true;
+  try {
+    const messages = await loadRecentConversations();
+    const exported = {
+      format: "REDRO-CHAT-HISTORY",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      messageCount: messages.length,
+      messages: messages.sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
+    };
+    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "redro-connect-history-" + new Date().toISOString().slice(0, 10) + ".json";
+    anchor.hidden = true;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("Local message history exported. Keep the file private.");
+  } catch (error) {
+    showToast(error.message || "Could not export local message history.");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 async function renderRecentConversations() {
   const list = byId("recentConversationList");
   if (!list) return;
@@ -962,6 +992,7 @@ async function initializeIdentity() {
 byId("refreshCapabilities")?.addEventListener("click", checkCapabilities);
 byId("addContactButton")?.addEventListener("click", addContactFromCard);
 byId("refreshRecentConversations")?.addEventListener("click", renderRecentConversations);
+byId("exportHistoryButton")?.addEventListener("click", exportLocalHistory);
 byId("newChatButton")?.addEventListener("click", showSetupNotice);
 byId("profileButton")?.addEventListener("click", openIdentityDialog);
 byId("identityForm")?.addEventListener("submit", handleIdentitySubmit);
